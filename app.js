@@ -170,4 +170,38 @@ function importData(e){
 
 document.getElementById("search").addEventListener("input",renderCollection);
 ["filterDistillery","filterCountry","filterMinScore","filterMaxPrice","filterStock"].forEach(id=>document.getElementById(id).addEventListener("input",renderCollection));
+
+// Migration automatique : récupère une ancienne collection stockée sous un ancien nom de clé.
+function migrateLegacyCollection(){
+  if(Array.isArray(bottles) && bottles.length) return;
+  const candidates=["whisky_collection_v1","whisky_collection","whiskyCollection","whisky_bottles","bottles","collection"];
+  for(const k of candidates){
+    try{
+      const raw=localStorage.getItem(k);
+      if(!raw) continue;
+      const parsed=JSON.parse(raw);
+      const arr=Array.isArray(parsed)?parsed:(parsed&&Array.isArray(parsed.bottles)?parsed.bottles:null);
+      if(arr && arr.length && arr.some(x=>x && (x.name||x.nom))){
+        bottles=arr.map(x=>({
+          id:x.id||uid(),
+          name:x.name||x.nom||"Whisky",
+          distillery:x.distillery||x.distillerie||"",
+          country:x.country||x.pays||x.region||"",
+          age:x.age??x.âge??"",
+          abv:x.abv??x.degre??x.degré??"",
+          volume:x.volume??70,
+          qty:x.qty??x.quantity??x.quantite??x.quantité??1,
+          price:x.price??x.prix??0,
+          score:x.score??x.rating??"",
+          notes:x.notes||"",
+          photo:x.photo||""
+        }));
+        save(KEY,bottles);
+        return;
+      }
+    }catch(e){}
+  }
+}
+migrateLegacyCollection();
+
 renderHome();renderCollection();renderHistory();renderStats();showScreen("home");
