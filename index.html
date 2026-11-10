@@ -1,1 +1,92 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#11100e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Whisky Collection"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.svg"><title>Whisky Collection</title><link rel="stylesheet" href="style.css"></head><body><div id="app"><header><div><div class="brand">🥃 Whisky Collection</div><div class="sub">Ma collection personnelle</div></div><button class="iconbtn" id="settingsBtn">⚙️</button></header><main><section id="home" class="screen active"><div class="stats"><div class="stat"><b id="count">0</b><span>Bouteilles</span></div><div class="stat"><b id="value">0 €</b><span>Valeur totale</span></div><div class="stat"><b id="gain">0 €</b><span>Plus-value</span></div><div class="stat"><b id="avg">0/100</b><span>Note moyenne</span></div></div><button class="primary big" id="addHome">＋ Ajouter une bouteille</button><h2>Dernières bouteilles</h2><div id="recent" class="list"></div></section><section id="collection" class="screen"><div class="sectionHead"><h1>Ma collection</h1><button class="primary small" id="addCollection">＋ Ajouter</button></div><input id="search" class="search" placeholder="🔎 Rechercher un whisky, une distillerie..."><div class="chips"><button data-filter="all" class="chip selected">Tous</button><button data-filter="open" class="chip">Ouverts</button><button data-filter="closed" class="chip">Fermés</button></div><div id="grid" class="grid"></div></section><section id="stats" class="screen"><h1>Statistiques</h1><div class="stats"><div class="stat"><b id="statCount">0</b><span>Bouteilles</span></div><div class="stat"><b id="statInvest">0 €</b><span>Investi</span></div><div class="stat"><b id="statGain">0 €</b><span>Plus-value</span></div><div class="stat"><b id="statBest">—</b><span>Meilleure note</span></div></div><div class="panel"><h3>Répartition par pays</h3><div id="countries"></div></div><div class="panel"><h3>Top 5 des notes</h3><div id="top"></div></div></section><section id="searchScreen" class="screen"><h1>Recherche</h1><input id="advancedSearch" class="search" placeholder="Nom, distillerie, pays..."><div id="searchResults" class="list"></div></section><section id="more" class="screen"><h1>Plus</h1><div class="panel"><button class="rowBtn" id="exportBtn">📤 Exporter ma collection</button><button class="rowBtn" id="importBtn">📥 Importer une collection</button><button class="rowBtn danger" id="resetBtn">🗑️ Effacer toutes les données</button><input type="file" id="fileInput" accept=".json" hidden></div></section></main><nav><button class="nav active" data-screen="home">⌂<span>Accueil</span></button><button class="nav" data-screen="collection">🥃<span>Collection</span></button><button class="nav" data-screen="stats">▥<span>Stats</span></button><button class="nav" data-screen="searchScreen">⌕<span>Recherche</span></button><button class="nav" data-screen="more">☰<span>Plus</span></button></nav></div><div id="modal" class="modal hidden"><div class="modalCard"><div class="modalHead"><h2 id="modalTitle">Ajouter une bouteille</h2><button id="closeModal">✕</button></div><form id="whiskyForm"><input type="hidden" id="editId"><label>Nom*<input id="name" required></label><label>Distillerie<input id="distillery"></label><div class="two"><label>Pays<input id="country" placeholder="Écosse"></label><label>Région<input id="region" placeholder="Islay"></label></div><div class="two"><label>Type<input id="type" placeholder="Single Malt"></label><label>Âge<input id="age" type="number" min="0"></label></div><div class="two"><label>Degré (%)<input id="abv" type="number" step="0.1"></label><label>Contenance (cl)<input id="volume" type="number"></label></div><div class="two"><label>Prix d'achat (€)<input id="purchase" type="number" step="0.01"></label><label>Valeur actuelle (€)<input id="current" type="number" step="0.01"></label></div><div class="two"><label>Quantité<input id="qty" type="number" min="1" value="1"></label><label>Note /100<input id="rating" type="number" min="0" max="100"></label></div><label class="check"><input id="opened" type="checkbox"> Bouteille ouverte</label><label>Nez<textarea id="nose"></textarea></label><label>Bouche<textarea id="palate"></textarea></label><label>Finale<textarea id="finish"></textarea></label><label>Notes personnelles<textarea id="notes"></textarea></label><label>Photo<input id="photo" type="file" accept="image/*"></label><img id="photoPreview" class="preview hidden"><button class="primary" type="submit">Enregistrer</button></form></div></div><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<title>Whisky Collection</title>
+</head>
+<body>
+<header class="top">
+  <div class="eyebrow">MA COLLECTION</div>
+  <h1>🥃 Whisky Collection</h1>
+  <p>Mes bouteilles, mes notes et mon stock</p>
+</header>
+
+<main>
+<section id="home" class="screen active">
+  <div class="hero card">
+    <h2>Bienvenue</h2>
+    <p>Gère facilement ta collection de whiskys.</p>
+    <button class="primary" onclick="openForm()">＋ Ajouter une bouteille</button>
+  </div>
+  <div id="homeStats" class="grid2"></div>
+</section>
+
+<section id="collection" class="screen">
+  <div class="sectionHead"><div><h2>Collection</h2><p id="countText"></p></div><button class="primary small" onclick="openForm()">＋ Ajouter</button></div>
+  <input id="search" class="input" placeholder="🔎 Rechercher une bouteille, distillerie...">
+  <button id="filterToggle" class="secondary full" onclick="toggleFilters()">⚙️ Filtres</button>
+  <div id="filters" class="filters hidden">
+    <input id="filterDistillery" class="input" placeholder="Distillerie">
+    <input id="filterCountry" class="input" placeholder="Pays / région">
+    <div class="row"><input id="filterMinScore" class="input" type="number" min="0" max="100" placeholder="Note min"><input id="filterMaxPrice" class="input" type="number" min="0" step="0.01" placeholder="Prix max"></div>
+    <label class="check"><input id="filterStock" type="checkbox"> Uniquement en stock</label>
+    <button class="secondary full" onclick="saveCurrentSearch()">💾 Enregistrer cette recherche</button>
+  </div>
+  <div id="savedSearches" class="saved"></div>
+  <div id="collectionList"></div>
+</section>
+
+<section id="history" class="screen">
+  <div class="sectionHead"><div><h2>Sorties</h2><p>Historique des bouteilles sorties du stock</p></div></div>
+  <div id="historyList"></div>
+</section>
+
+<section id="stats" class="screen">
+  <div class="sectionHead"><div><h2>Statistiques</h2><p>Vue d'ensemble de ta collection</p></div></div>
+  <div id="statsGrid" class="grid2"></div>
+</section>
+
+<section id="more" class="screen">
+  <div class="sectionHead"><div><h2>Plus</h2><p>Sauvegarde et gestion des données</p></div></div>
+  <div class="card">
+    <button class="secondary full" onclick="exportData()">⬇️ Exporter ma collection</button>
+    <label class="secondary full fileBtn">⬆️ Importer une collection<input type="file" id="importFile" accept=".json,application/json" onchange="importData(event)"></label>
+    <p class="hint">L’export conserve les bouteilles, les photos, l’historique et les recherches enregistrées.</p>
+  </div>
+</section>
+</main>
+
+<nav class="bottom">
+  <button onclick="showScreen('home')" data-screen="home">🏠<span>Accueil</span></button>
+  <button onclick="showScreen('collection')" data-screen="collection">🥃<span>Collection</span></button>
+  <button onclick="showScreen('history')" data-screen="history">📜<span>Sorties</span></button>
+  <button onclick="showScreen('stats')" data-screen="stats">📊<span>Stats</span></button>
+  <button onclick="showScreen('more')" data-screen="more">⋯<span>Plus</span></button>
+</nav>
+
+<div id="modal" class="modal hidden">
+  <div class="modalBox">
+    <div class="modalHead"><h2 id="formTitle">Ajouter une bouteille</h2><button onclick="closeForm()">✕</button></div>
+    <form id="bottleForm">
+      <input type="hidden" id="editId">
+      <input type="hidden" id="removePhoto" value="0">
+      <label>Nom*<input id="name" class="input" required></label>
+      <div class="row"><label>Distillerie<input id="distillery" class="input"></label><label>Pays / région<input id="country" class="input"></label></div>
+      <div class="row"><label>Âge<input id="age" class="input" type="number" min="0"></label><label>Degré<input id="abv" class="input" type="number" min="0" max="100" step="0.1"></label></div>
+      <div class="row"><label>Volume (cl)<input id="volume" class="input" type="number" min="1" step="1" value="70"></label><label>Quantité<input id="qty" class="input" type="number" min="0" step="1" value="1"></label></div>
+      <div class="row"><label>Prix d’achat (€)<input id="price" class="input" type="number" min="0" step="0.01"></label><label>Note /100<input id="score" class="input" type="number" min="0" max="100"></label></div>
+      <label>Photo de la bouteille<input id="photo" class="input" type="file" accept="image/*" capture="environment"></label>
+      <button id="removePhotoBtn" type="button" class="secondary full hidden" onclick="removeCurrentPhoto()">🗑️ Supprimer la photo</button>
+      <label>Notes<textarea id="notes" class="input" rows="4"></textarea></label>
+      <button class="primary full" type="submit">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
