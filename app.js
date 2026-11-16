@@ -1,23 +1,75 @@
-const K="whisky_collection_v2",H="whisky_sales_history_v1",S="whisky_saved_searches_v1",B="whisky_auto_backup_v4";
-let bottles=[],history=[],saved=[],editId=null,currentPhoto="";
-const $=id=>document.getElementById(id);
-function load(){try{bottles=JSON.parse(localStorage.getItem(K)||"[]")}catch{}try{history=JSON.parse(localStorage.getItem(H)||"[]")}catch{}try{saved=JSON.parse(localStorage.getItem(S)||"[]")}catch{}render()}
-function save(){localStorage.setItem(K,JSON.stringify(bottles));localStorage.setItem(H,JSON.stringify(history));localStorage.setItem(S,JSON.stringify(saved));localStorage.setItem(B,JSON.stringify({bottles,history,saved}))}
-function esc(s=""){return String(s).replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[x]))}
-function render(){let q=$("search").value.toLowerCase(),d=$("filterDistillery").value.toLowerCase(),c=$("filterCountry").value.toLowerCase(),ms=+$("minScore").value||0,mp=+$("maxPrice").value||Infinity,stock=$("inStock").checked;let a=bottles.filter(b=>(!q||[b.name,b.distillery,b.country,b.notes].join(" ").toLowerCase().includes(q))&&(!d||String(b.distillery||"").toLowerCase().includes(d))&&(!c||String(b.country||"").toLowerCase().includes(c))&&(!ms||+b.score>=ms)&&(+b.price||0)<=mp&&(!stock||+b.qty>0));$("collection").innerHTML=a.length?a.map(b=>`<article class="card">${b.photo?`<img src="${b.photo}">`:`<div class="nophoto">🥃</div>`}<div class="body"><h3>${esc(b.name)}</h3><div class="muted">${esc(b.distillery||"")} ${b.country?"· "+esc(b.country):""}</div><div class="muted">${b.age?b.age+" ans · ":""}${b.abv?b.abv+"% · ":""}${b.volume||70} cl</div><b>${b.price||0} € · ${b.score||"—"}/100 · Stock ${b.qty||0}</b><p>${esc(b.notes||"")}</p><button onclick="edit('${b.id}')">Modifier</button>${+b.qty>0?`<button onclick="out('${b.id}')">Sortir 1</button>`:""}<button onclick="del('${b.id}')">Supprimer</button></div></article>`).join(""):`<div class="empty">Aucune bouteille trouvée.</div>`;let total=bottles.reduce((s,b)=>s+(+b.qty||0),0),val=bottles.reduce((s,b)=>s+(+b.qty||0)*(+b.price||0),0);$("stats").innerHTML=`Bouteilles en stock : <b>${total}</b> · Références : <b>${bottles.length}</b> · Valeur : <b>${val.toFixed(2)} €</b>`;$("history").innerHTML=history.length?history.slice().reverse().map(h=>`${esc(h.name)} — ${h.qty} · ${esc(h.reason)} · ${new Date(h.date).toLocaleDateString("fr-FR")}<br>`).join(""):"Aucune sortie.";$("savedSearches").innerHTML=saved.map((x,i)=>`<button class="chip" onclick="applySaved(${i})">${esc(x.name)}</button>`).join("")}
-function open(b){editId=b?.id||null;currentPhoto=b?.photo||"";$("modalTitle").textContent=b?"Modifier une bouteille":"Ajouter une bouteille";["name","distillery","country","age","abv","volume","qty","price","score","notes"].forEach(id=>$(id).value=b?.[id]??"");$("qty").value=b?.qty??1;photoPreview()}
-function edit(id){open(bottles.find(b=>b.id===id));$("modal").classList.remove("hidden")}
-function photoPreview(){let p=$("photoPreview");p.innerHTML=currentPhoto?`<img src="${currentPhoto}">`:"Aucune photo"}
-function readPhoto(f){if(!f)return;let r=new FileReader();r.onload=()=>{let im=new Image();im.onload=()=>{let m=1200,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);currentPhoto=c.toDataURL("image/jpeg",.82);photoPreview()};im.src=r.result};r.readAsDataURL(f)}
-function saveBottle(){let n=$("name").value.trim();if(!n)return alert("Le nom du whisky est obligatoire.");let x={name:n,distillery:$("distillery").value,country:$("country").value,age:$("age").value,abv:$("abv").value,volume:$("volume").value||70,qty:+$("qty").value||0,price:+$("price").value||0,score:+$("score").value||0,notes:$("notes").value,photo:currentPhoto};if(editId){let i=bottles.findIndex(b=>b.id===editId);bottles[i]={...bottles[i],...x}}else bottles.push({id:crypto.randomUUID(),...x});save();$("modal").classList.add("hidden");render()}
-function del(id){if(confirm("Supprimer définitivement cette bouteille ?")){bottles=bottles.filter(b=>b.id!==id);save();render()}}
-function out(id){let b=bottles.find(x=>x.id===id);if(!b)return;b.qty--;history.push({name:b.name,qty:1,reason:prompt("Motif","dégustée")||"autre",date:new Date().toISOString()});save();render()}
-function exportJSON(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({bottles,history,saved},null,2)],{type:"application/json"}));a.download="ma-collection-whisky.json";a.click()}
-$("addBtn").onclick=()=>{$("modal").classList.remove("hidden");open()};$("closeModal").onclick=()=>$("modal").classList.add("hidden");$("cancelBtn").onclick=()=>$("modal").classList.add("hidden");$("saveBtn").onclick=saveBottle;
-$("libraryBtn").onclick=()=>{$("photoLibrary").value="";$("photoLibrary").click()};$("cameraBtn").onclick=()=>{$("photoCamera").value="";$("photoCamera").click()};$("photoLibrary").onchange=e=>readPhoto(e.target.files[0]);$("photoCamera").onchange=e=>readPhoto(e.target.files[0]);$("removePhotoBtn").onclick=()=>{currentPhoto="";photoPreview()};
-$("plusBtn").onclick=()=>$("plusModal").classList.remove("hidden");$("closePlus").onclick=()=>$("plusModal").classList.add("hidden");$("exportBtn").onclick=exportJSON;$("backupBtn").onclick=()=>{save();exportJSON()};$("restoreBtn").onclick=()=>{let x=JSON.parse(localStorage.getItem(B)||"null");if(x&&confirm("Restaurer la sauvegarde automatique ?")){bottles=x.bottles||[];history=x.history||[];saved=x.saved||[];save();render()}};
-$("importFile").onchange=e=>{let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);bottles=x.bottles||x;history=x.history||[];saved=x.saved||[];save();render();alert("Import réussi")}catch{alert("Fichier invalide")}};r.readAsText(e.target.files[0])};
-["search","filterDistillery","filterCountry","minScore","maxPrice","inStock"].forEach(id=>$(id).oninput=render);
-let sb=document.createElement("button");sb.textContent="＋ Enregistrer cette recherche";sb.onclick=()=>{let n=prompt("Nom de la recherche");if(n){saved.push({name:n,filters:{q:$("search").value,d:$("filterDistillery").value,c:$("filterCountry").value,ms:$("minScore").value,mp:$("maxPrice").value,stock:$("inStock").checked}});save();render()}};$("savedSearches").before(sb);
-function applySaved(i){let f=saved[i].filters;$("search").value=f.q||"";$("filterDistillery").value=f.d||"";$("filterCountry").value=f.c||"";$("minScore").value=f.ms||"";$("maxPrice").value=f.mp||"";$("inStock").checked=!!f.stock;render()}
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");load();
+const STORAGE="whisky_collection_v2", HISTORY="whisky_sales_history_v1", SAVED="whisky_saved_searches_v1", AUTO="whisky_auto_backup_v4";
+let bottles=loadJSON(STORAGE,[]), history=loadJSON(HISTORY,[]), saved=loadJSON(SAVED,[]);
+let currentPhoto="", photoTarget=null;
+
+function loadJSON(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(bottles));localStorage.setItem(HISTORY,JSON.stringify(history));localStorage.setItem(SAVED,JSON.stringify(saved));try{localStorage.setItem(AUTO,JSON.stringify({date:new Date().toISOString(),bottles,history,saved}))}catch(e){}}
+function euro(n){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(n||0))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function showView(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(v).classList.add("active");document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));render()}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+document.getElementById("seeCollection").onclick=()=>showView("collectionView");
+["addTop","addHero","addCollection"].forEach(x=>document.getElementById(x).onclick=()=>openBottle());
+
+function card(b){
+ return `<article class="card"><div class="thumb ${b.photo?"":"empty"}">${b.photo?`<img class="thumb" src="${b.photo}" alt="">`:"🥃"}</div><div class="card-main">
+ <h3>${esc(b.name)}</h3><div class="meta">${esc(b.distillery||"")} ${b.country?"• "+esc(b.country):""}</div>
+ <div class="badges">${b.age?`<span class="badge">${b.age} ans</span>`:""}${b.score?`<span class="badge score">★ ${b.score}/100</span>`:""}<span class="badge">${b.qty||0} en stock</span></div>
+ <div class="card-actions"><button class="secondary" onclick="openBottle('${b.id}')">Modifier</button><button class="secondary" onclick="openExit('${b.id}')">Sortir</button></div>
+ </div></article>`
+}
+function filtered(){
+ const q=document.getElementById("searchInput").value.toLowerCase(), d=document.getElementById("filterDistillery").value.toLowerCase(), c=document.getElementById("filterCountry").value.toLowerCase(), min=Number(document.getElementById("filterMinScore").value||0), max=Number(document.getElementById("filterMaxPrice").value||Infinity), stock=document.getElementById("stockOnly").checked;
+ return bottles.filter(b=>(!q||[b.name,b.distillery,b.country,b.notes,b.nose,b.palate,b.finish].join(" ").toLowerCase().includes(q))&&(!d||String(b.distillery).toLowerCase().includes(d))&&(!c||String(b.country).toLowerCase().includes(c))&&(!min||Number(b.score||0)>=min)&&Number(b.price||0)<=max&&(!stock||Number(b.qty||0)>0))
+}
+function render(){
+ const inStock=bottles.filter(b=>Number(b.qty)>0), value=inStock.reduce((s,b)=>s+Number(b.price||0)*Number(b.qty||0),0), rated=inStock.filter(b=>b.score);
+ document.getElementById("statBottles").textContent=inStock.reduce((s,b)=>s+Number(b.qty||0),0);
+ document.getElementById("statValue").textContent=euro(value);
+ document.getElementById("statAvg").textContent=rated.length?(rated.reduce((s,b)=>s+Number(b.score),0)/rated.length).toFixed(1)+"/100":"—";
+ document.getElementById("recentList").innerHTML=bottles.slice().reverse().slice(0,3).map(card).join("")||`<p class="muted">Aucune bouteille pour le moment.</p>`;
+ document.getElementById("collectionList").innerHTML=filtered().map(card).join("")||`<p class="muted">Aucune bouteille ne correspond à votre recherche.</p>`;
+ document.getElementById("savedSearches").innerHTML=saved.map((s,i)=>`<button class="chip" onclick="applySaved(${i})">${esc(s.name)}</button>`).join("");
+ document.getElementById("historyList").innerHTML=history.slice().reverse().map(h=>`<article class="card"><div class="card-main"><h3>${esc(h.name)}</h3><div class="meta">${h.qty} bouteille(s) • ${esc(h.reason)} • ${new Date(h.date).toLocaleDateString("fr-FR")}</div>${h.salePrice?`<div class="meta">Prix de vente : ${euro(h.salePrice)}</div>`:""}</div></article>`).join("")||`<p class="muted">Aucune sortie enregistrée.</p>`;
+ document.getElementById("statsFull").innerHTML=`<div class="stat-line"><span>Bouteilles en stock</span><strong>${inStock.reduce((s,b)=>s+Number(b.qty||0),0)}</strong></div><div class="stat-line"><span>Valeur de la collection</span><strong>${euro(value)}</strong></div><div class="stat-line"><span>Note moyenne</span><strong>${rated.length?(rated.reduce((s,b)=>s+Number(b.score),0)/rated.length).toFixed(1)+"/100":"—"}</strong></div><div class="stat-line"><span>Références</span><strong>${bottles.length}</strong></div><div class="stat-line"><span>Sorties enregistrées</span><strong>${history.length}</strong></div>`;
+}
+["searchInput","filterDistillery","filterCountry","filterMinScore","filterMaxPrice","stockOnly"].forEach(x=>document.getElementById(x).addEventListener("input",render));
+
+function resetForm(){
+ document.getElementById("bottleForm").reset();document.getElementById("editId").value="";currentPhoto="";updatePhotoPreview();document.getElementById("modalTitle").textContent="Ajouter une bouteille";
+}
+function openBottle(editId=null){
+ resetForm();
+ if(editId){const b=bottles.find(x=>x.id===editId);if(!b)return;document.getElementById("modalTitle").textContent="Modifier la bouteille";document.getElementById("editId").value=b.id;["name","distillery","country","age","abv","volume","qty","price","score","nose","palate","finish","notes"].forEach(k=>document.getElementById(k).value=b[k]??"");currentPhoto=b.photo||"";updatePhotoPreview()}
+ document.getElementById("modal").classList.remove("hidden");
+}
+document.getElementById("closeModal").onclick=()=>document.getElementById("modal").classList.add("hidden");
+
+function updatePhotoPreview(){const p=document.getElementById("photoPreview"),r=document.getElementById("removePhoto");if(currentPhoto){p.classList.remove("empty");p.innerHTML=`<img src="${currentPhoto}" alt="">`;r.classList.remove("hidden")}else{p.classList.add("empty");p.innerHTML="🥃";r.classList.add("hidden")}}
+function readPhoto(file){if(!file)return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const max=1200,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);currentPhoto=c.toDataURL("image/jpeg",.82);updatePhotoPreview()};img.src=e.target.result};reader.readAsDataURL(file)}
+document.getElementById("libraryBtn").onclick=()=>document.getElementById("photoLibrary").click();
+document.getElementById("cameraBtn").onclick=()=>document.getElementById("photoCamera").click();
+document.getElementById("photoLibrary").onchange=e=>readPhoto(e.target.files[0]);
+document.getElementById("photoCamera").onchange=e=>readPhoto(e.target.files[0]);
+document.getElementById("removePhoto").onclick=()=>{currentPhoto="";updatePhotoPreview()};
+
+document.getElementById("bottleForm").onsubmit=e=>{
+ e.preventDefault();const edit=document.getElementById("editId").value;
+ const b={id:edit||id(),name:document.getElementById("name").value.trim(),distillery:document.getElementById("distillery").value.trim(),country:document.getElementById("country").value.trim(),age:Number(document.getElementById("age").value||0),abv:Number(document.getElementById("abv").value||0),volume:Number(document.getElementById("volume").value||0),qty:Number(document.getElementById("qty").value||0),price:Number(document.getElementById("price").value||0),score:Number(document.getElementById("score").value||0),photo:currentPhoto,nose:document.getElementById("nose").value.trim(),palate:document.getElementById("palate").value.trim(),finish:document.getElementById("finish").value.trim(),notes:document.getElementById("notes").value.trim(),updatedAt:new Date().toISOString()};
+ if(edit){const i=bottles.findIndex(x=>x.id===edit);bottles[i]=b}else bottles.push(b);save();document.getElementById("modal").classList.add("hidden");render()
+};
+
+function openExit(i){document.getElementById("exitId").value=i;document.getElementById("exitQty").value=1;document.getElementById("salePrice").value="";document.getElementById("exitModal").classList.remove("hidden")}
+document.getElementById("closeExit").onclick=()=>document.getElementById("exitModal").classList.add("hidden");
+document.getElementById("exitForm").onsubmit=e=>{e.preventDefault();const b=bottles.find(x=>x.id===document.getElementById("exitId").value);if(!b)return;const q=Math.max(1,Number(document.getElementById("exitQty").value||1));if(q>Number(b.qty||0)){alert("Quantité supérieure au stock.");return}b.qty-=q;history.push({name:b.name,qty:q,reason:document.getElementById("exitReason").value,salePrice:Number(document.getElementById("salePrice").value||0),date:new Date().toISOString()});save();document.getElementById("exitModal").classList.add("hidden");render()};
+
+window.applySaved=i=>{const s=saved[i];if(!s)return;document.getElementById("searchInput").value=s.query||"";document.getElementById("filterDistillery").value=s.distillery||"";document.getElementById("filterCountry").value=s.country||"";document.getElementById("filterMinScore").value=s.minScore||"";document.getElementById("filterMaxPrice").value=s.maxPrice||"";document.getElementById("stockOnly").checked=!!s.stock;showView("collectionView")};
+
+function download(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+document.getElementById("exportBtn").onclick=()=>download("ma-collection-whisky.json",JSON.stringify({bottles,history,saved,exportedAt:new Date().toISOString()},null,2));
+document.getElementById("backupBtn").onclick=()=>{save();download("whisky-collection-sauvegarde.json",JSON.stringify({bottles,history,saved,backupAt:new Date().toISOString()},null,2));alert("Sauvegarde créée.")}
+document.getElementById("restoreBtn").onclick=()=>{const x=loadJSON(AUTO,null);if(!x){alert("Aucune sauvegarde automatique disponible.");return}if(confirm("Restaurer la sauvegarde automatique ?")){bottles=x.bottles||[];history=x.history||[];saved=x.saved||[];save();render();alert("Sauvegarde restaurée.")}}
+document.getElementById("importInput").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);bottles=x.bottles||x.collection||[];history=x.history||[];saved=x.saved||[];save();render();alert("Import terminé.")}catch(err){alert("Fichier invalide.")}};r.readAsText(f)}
+
+render();
