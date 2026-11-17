@@ -129,7 +129,7 @@ function download(name,text){const a=document.createElement("a");a.href=URL.crea
 document.getElementById("exportBtn").onclick=()=>download("ma-collection-whisky.json",JSON.stringify({bottles:lightBottles(),history,saved,exportedAt:new Date().toISOString()},null,2));
 document.getElementById("backupBtn").onclick=async()=>{await save();download("whisky-collection-sauvegarde.json",JSON.stringify({bottles:lightBottles(),history,saved,backupAt:new Date().toISOString()},null,2));alert("Sauvegarde créée.")}
 document.getElementById("restoreBtn").onclick=async()=>{const x=loadJSON(AUTO,null);if(!x){alert("Aucune sauvegarde automatique disponible.");return}if(confirm("Restaurer la sauvegarde automatique ?")){bottles=x.bottles||[];history=x.history||[];saved=x.saved||[];await save();await hydratePhotos();alert("Sauvegarde restaurée.")}}
-document.getElementById("importInput").onchange=async e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);bottles=x.bottles||x.collection||[];history=x.history||[];saved=x.saved||[];await save();await hydratePhotos();alert("Import terminé.")}catch(err){alert("Fichier invalide.")}};r.readAsText(f)}
+document.getElementById("importInput").onchange=async e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const x=JSON.parse(r.result);bottles=x.bottles||x.collection||[];history=x.history||[];saved=x.saved||[];await save();await hydratePhotos();alert("Import terminé.")}catch(err){alert("Fichier invalide.")}};r.readAsText(f)}
 
 render();
 // V7: move existing base64 photos out of localStorage to avoid the ~5 MB Safari quota.
